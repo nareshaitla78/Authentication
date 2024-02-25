@@ -29,7 +29,7 @@ app.post('/register', async (request, response) => {
 
   const dbUser = await db.run(selectUserQuery)
 
-  if (dbUser == undefined) {
+  if (dbUser === undefined) {
     const postSalQuery = `
         INSERT INTO 
         user (username, name, password, gender, location)
@@ -41,13 +41,13 @@ app.post('/register', async (request, response) => {
             '${location}'
         );`
 
-    if (password.length > 4) {
+    if (password.length < 5) {
+      response.status(400)
+      response.send('Password is too short')
+    } else {
       await db.run(postSalQuery)
       response.status(200)
       response.send('User created successfully')
-    } else {
-      response.status(400)
-      response.send('Password is too short')
     }
   } else {
     response.send(400)
@@ -59,7 +59,7 @@ app.post('/login', async (request, response) => {
   const selectUserQuery = `SELECT * FROM user WHERE username = '${username}';`
 
   const dbUser = await db.run(selectUserQuery)
-  if (dbUser == undefined) {
+  if (dbUser === undefined) {
     response.status(400)
     response.send('Invalid user')
   } else {
@@ -78,14 +78,17 @@ app.put('/change-password', async (request, response) => {
   const selectUserQuery = `SELECT * FROM user WHERE username = '${username}';`
 
   const dbUser = await db.run(selectUserQuery)
-  if (dbUser == undefined) {
+  if (dbUser === undefined) {
     response.status(400)
     response.send('Invalid user')
   } else {
     const isPasswordMacthed = await bcrypt.compare(oldPassword, dbUser.password)
     if (isPasswordMacthed === true) {
       const validatePassword = newPassword.length
-      if (validatePassword > 4) {
+      if (validatePassword < 5) {
+        response.status(400)
+        response.send('Password is too short')
+      } else {
         const hashedPassword = await bcrypt.hash(newPassword, 10)
         const sqlQuery = `
         UPDATE
@@ -95,9 +98,6 @@ app.put('/change-password', async (request, response) => {
         WHERE username='${username}';`
         await db.run(sqlQuery)
         response.send('Password updated')
-      } else {
-        response.status(400)
-        response.send('Password is too short')
       }
     } else {
       response.status(400)
