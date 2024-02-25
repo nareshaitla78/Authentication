@@ -21,12 +21,7 @@ const initializeDbAndServer = async () => {
     process.exit(1)
   }
 }
-
 initializeDbAndServer()
-const validatePassword = password => {
-  return password.length > 4
-}
-
 app.post('/register', async (request, response) => {
   const {username, name, password, gender, location} = request.body
   const hashedPassword = await bcrypt.hash(password, 10)
@@ -46,8 +41,9 @@ app.post('/register', async (request, response) => {
             '${location}'
         );`
 
-    if (validatePassword(password)) {
+    if (password.length > 4) {
       await db.run(postSalQuery)
+      response.status(200)
       response.send('User created successfully')
     } else {
       response.status(400)
@@ -88,7 +84,8 @@ app.put('/change-password', async (request, response) => {
   } else {
     const isPasswordMacthed = await bcrypt.compare(oldPassword, dbUser.password)
     if (isPasswordMacthed === true) {
-      if (validatePassword(newPassword)) {
+      const validatePassword = newPassword.length
+      if (validatePassword > 4) {
         const hashedPassword = await bcrypt.hash(newPassword, 10)
         const sqlQuery = `
         UPDATE
@@ -96,7 +93,7 @@ app.put('/change-password', async (request, response) => {
         SET 
         password='${hashedPassword}'
         WHERE username='${username}';`
-        const user = await db.run(sqlQuery)
+        await db.run(sqlQuery)
         response.send('Password updated')
       } else {
         response.status(400)
